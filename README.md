@@ -1,1 +1,1 @@
-# topBeanPipeTemplates
+# topbean-pipeline-template-catalog

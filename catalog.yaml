@@ -1,0 +1,4 @@
+type: pipeline-template-catalog
+version: 1
+name: topbean-pipeline-template-catalog
+displayName: Topbean Pipeline Template Catalog

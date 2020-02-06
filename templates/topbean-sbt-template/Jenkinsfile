@@ -1,0 +1,72 @@
+@Library("topbean-shared-library") _
+pipeline {
+  agent{
+    kubernetes {
+      label "${projectId}"
+      yaml"""
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: sbt
+    image: hseeberger/scala-sbt:8u222_1.3.7_2.13.1
+    command:
+    - cat
+    tty: true
+  - name: jfrog
+    image: docker.bintray.io/jfrog/jfrog-cli-go:1.31.0
+    command:
+    - cat
+    tty: true
+  - name: alpine-zip
+    image: kramos/alpine-zip:latest
+    command:
+    - cat
+    tty: true
+  volumeMounts:
+  - name: nfs
+    mountPath: "/home/jenkins/git"
+volumes:
+  nfsVolume(mountPath: '/home/jenkins/git', serverAddress: 'fs-3215e8b2.efs.us-east-1.amazonaws.com', serverPath: '/', readOnly: true)
+
+      """
+    }
+  }
+  triggers {
+    eventTrigger jmespathQuery("""event=='${projectId}'""")
+  }
+  environment {
+    ARTIFACTORY_MAVEN=credentials("artifactory-maven")
+    JFROG_CLI_OFFER_CONFIG=false
+  }
+  stages {
+    stage("Build Prep") {
+      steps {
+        container("sbt") {
+          git branch: getEventValue(key:"branchName"), url: "${gitUrl}" , credentialsId: "${credentialsId}"
+        }
+      }
+    }
+    stage("Build") {
+      steps {
+        dir("${subdirectory}") {
+          container("sbt") {
+            sh """
+              sbt clean stage
+            """
+          }
+          container("alpine-zip") {
+            sh """
+              ./eb-package.sh
+            """
+          }
+          container("jfrog") {
+            sh """
+              jfrog rt upload --url http://34.82.23.119/artifactory/generic-local/ --user ${ARTIFACTORY_MAVEN_USR} --password ${ARTIFACTORY_MAVEN_PSW} "${projectId}*.zip" topbean/${projectId}/
+            """
+          }
+        }
+      }
+    }
+  }
+}

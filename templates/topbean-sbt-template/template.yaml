@@ -1,0 +1,16 @@
+type: pipeline-template
+version: 1
+
+name: topbean-sbt-template
+description: Topbean SBT Template
+parameters:
+  - name: projectId
+    displayName: Project Id
+  - name: gitUrl
+    displayName: Git URL
+  - name: credentialsId
+    displayName: Credentials Id
+    type: credentials
+    defaultValue: artifactory-maven
+  - name: subdirectory
+    displayName: Subdirectory
